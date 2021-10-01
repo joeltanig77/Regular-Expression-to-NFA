@@ -36,6 +36,20 @@ struct NFA* pop(struct Stack* stack) {
   return stack->arrayOfNFAs[stack->top--];
 }
 
+int cleanUpNFA(struct NFA* nfa) {
+    struct Transitions* temp = NULL;
+    struct Transitions* cursor = nfa;
+    while(cursor->tran != NULL) {
+      temp = cursor->tran;
+      cursor = cursor->tran;
+      free(temp->tran);
+    }
+    free(cursor->tran);
+    free(cursor);
+    return 0;
+}
+
+
 
 int main(int argc,char *argv[]) {
   char line[256];
@@ -68,7 +82,7 @@ int main(int argc,char *argv[]) {
     free(nfaArray);
     return 0;
   }
-
+  // Init the stack
   stack->arrayOfNFAs = nfaArray;
   stack->top = -1;
 
@@ -81,17 +95,46 @@ int main(int argc,char *argv[]) {
       if (c == 38) {
         struct NFA* nfa2 = pop(stack); // b
         struct NFA* nfa1 = pop(stack); // a
-        //printf("\n");
         struct NFA* added = (struct NFA*)calloc(1,sizeof(added));
-        struct Transitions* tran = (struct Transitions*)calloc(1,sizeof(tran));
-        added->tran = tran;
-        added->tran->stateOne = nfa1->acceptState;
-        added->tran->stateTwo = nfa2->startState;
-        added->tran->symbol = 'E';
+        struct Transitions* nfaTranCursor1 = nfa1->tran;
+        struct Transitions* nfaTranCursor2 = nfa2->tran;
+        struct Transitions* addedCursor = added;
+
+        while(nfaTranCursor1 != NULL) {
+          struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+          collect->stateOne = nfaTranCursor1->stateOne;
+          collect->stateTwo = nfaTranCursor1->stateTwo;
+          collect->symbol = nfaTranCursor1->symbol;
+          // Iterate the pointers
+          addedCursor->tran = collect;
+          addedCursor = addedCursor->tran;
+          nfaTranCursor1 = nfaTranCursor1->tran;
+        }
+
+        // Add the epsilon state
+        struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+        collect->stateOne = nfa1->acceptState;
+        collect->stateTwo = nfa2->startState;
+        collect->symbol = 'E';
         added->startState = nfa1->startState;
         added->acceptState = nfa2->acceptState;
+
+        addedCursor->tran = collect;
+        addedCursor = addedCursor->tran;
+        while(nfaTranCursor2 != NULL) {
+          struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+          collect->stateOne = nfaTranCursor2->stateOne;
+          collect->stateTwo = nfaTranCursor2->stateTwo;
+          collect->symbol = nfaTranCursor2->symbol;
+          // Iterate the pointers
+          addedCursor->tran = collect;
+          addedCursor = addedCursor->tran;
+          nfaTranCursor2 = nfaTranCursor2->tran;
+        }
+        // clean up nfa's here
+        //cleanUpNFA(nfa1);
+        //cleanUpNFA(nfa2);
         push(stack,added);
-        // NEED TO DEBUG TO SEE IF THIS FULLY WORKS
       }
       // if the char == '|'
       else if (c == 124) {
@@ -103,7 +146,7 @@ int main(int argc,char *argv[]) {
       else if (c == 42) {
         struct NFA* nfa2 = pop(stack);
         struct NFA* nfa1 = pop(stack);
-        // Do shit
+        // START HERE
       }
       else {
         // Push
@@ -121,7 +164,7 @@ int main(int argc,char *argv[]) {
         nfa->acceptState = stateCounter;
         stateCounter += 1;
         //stateCounter += 1;
-        nfa->symbol = c;
+        nfa->tran->symbol = c;
         nfa->size += 2;
         push(stack,nfa);
       }
