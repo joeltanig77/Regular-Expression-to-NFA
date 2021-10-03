@@ -15,7 +15,6 @@ struct NFA {
   int startState;
   int acceptState;
   int size;
-  char symbol;
   struct Transitions * tran;
 };
 
@@ -38,7 +37,7 @@ struct NFA* pop(struct Stack* stack) {
 
 int cleanUpNFA(struct NFA* nfa) {
     struct Transitions* temp = NULL;
-    struct Transitions* cursor = nfa;
+    struct Transitions* cursor = (struct Transitions*)nfa;
     while(cursor->tran != NULL) {
       temp = cursor->tran;
       cursor = cursor->tran;
@@ -68,7 +67,7 @@ int main(int argc,char *argv[]) {
     return 0;
   }
 
-  if(argc == 1) {
+  if (argc == 1) {
     fprintf(stdout,"%s\n", "No file was passed in");
     free(stack);
     free(nfaArray);
@@ -88,6 +87,7 @@ int main(int argc,char *argv[]) {
 
   while (fgets(line,sizeof(line), fp)) {
     index = 0;
+    stateCounter = 0;
   while (line[index] != '\0') {
       char c = line[index];
       index += 1;
@@ -98,7 +98,7 @@ int main(int argc,char *argv[]) {
         struct NFA* added = (struct NFA*)calloc(1,sizeof(added));
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* nfaTranCursor2 = nfa2->tran;
-        struct Transitions* addedCursor = added;
+        struct Transitions* addedCursor = (struct Transitions*)added;
 
         while(nfaTranCursor1 != NULL) {
           struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
@@ -134,7 +134,7 @@ int main(int argc,char *argv[]) {
         // clean up nfa's here
         //cleanUpNFA(nfa1);
         //cleanUpNFA(nfa2);
-        push(stack,added);
+        push(stack,(struct NFA*)added);
       }
       // if the char == '|'
       else if (c == 124) {
@@ -144,9 +144,45 @@ int main(int argc,char *argv[]) {
       }
       // if the char == '*'
       else if (c == 42) {
-        struct NFA* nfa2 = pop(stack);
         struct NFA* nfa1 = pop(stack);
-        // START HERE
+        struct NFA* added = (struct NFA*)calloc(1,sizeof(added));
+        struct Transitions* nfaTranCursor1 = nfa1->tran;
+        struct Transitions* addedCursor = (struct Transitions*)added;
+
+
+        // Add everything from the old nfa to the new nfa (added)
+        while(nfaTranCursor1 != NULL) {
+          struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+          collect->stateOne = nfaTranCursor1->stateOne;
+          collect->stateTwo = nfaTranCursor1->stateTwo;
+          collect->symbol = nfaTranCursor1->symbol;
+          // Iterate the pointers
+          addedCursor->tran = collect;
+          addedCursor = addedCursor->tran;
+          nfaTranCursor1 = nfaTranCursor1->tran;
+        }
+
+        added->startState = nfa1->startState;
+
+        // Add a new start state s and make a ε-transition from this state to the start stateof FA1
+        struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+        collect->stateOne = stateCounter;
+        stateCounter += 1;
+        collect->stateTwo = nfa1->startState;
+        collect->symbol = 'E';
+        addedCursor->tran = collect;
+        addedCursor = addedCursor->tran;
+
+        // Make a ε-transition from the final state of F1 to the new start state s
+        struct Transitions* collect2 = (struct Transitions*)calloc(1,sizeof(collect));
+        collect2->stateOne = nfa1->acceptState;
+        collect2->stateTwo = stateCounter;
+        collect2->symbol = 'E';
+        addedCursor->tran = collect2;
+        added->acceptState = stateCounter;
+        stateCounter += 1;
+        push(stack,(struct NFA*)added);
+        // Check if I even fucking did it right
       }
       else {
         // Push
@@ -168,6 +204,10 @@ int main(int argc,char *argv[]) {
         nfa->size += 2;
         push(stack,nfa);
       }
+    }
+    fclose(fp);
+    if(errno) {
+      fprintf(stderr,"%s\n", strerror(errno));
     }
   }
   return 0;
