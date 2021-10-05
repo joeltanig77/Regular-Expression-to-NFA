@@ -167,7 +167,6 @@ int main(int argc,char *argv[]) {
         // Add a new start state s and make a ε-transition from this state to the start stateof FA1
         struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
         collect->stateOne = stateCounter;
-        stateCounter += 1;
         collect->stateTwo = nfa1->startState;
         collect->symbol = 'E';
         addedCursor->tran = collect;
@@ -179,6 +178,7 @@ int main(int argc,char *argv[]) {
         collect2->stateTwo = stateCounter;
         collect2->symbol = 'E';
         addedCursor->tran = collect2;
+        added->startState = stateCounter;
         added->acceptState = stateCounter;
         stateCounter += 1;
         push(stack,(struct NFA*)added);
