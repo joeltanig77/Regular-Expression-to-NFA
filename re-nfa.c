@@ -14,7 +14,6 @@ struct Stack {
 struct NFA {
   int startState;
   int acceptState;
-  int size;
   struct Transitions * tran;
 };
 
@@ -87,7 +86,7 @@ int main(int argc,char *argv[]) {
 
   while (fgets(line,sizeof(line), fp)) {
     index = 0;
-    stateCounter = 0;
+    stateCounter = 1;
   while (line[index] != '\0') {
       char c = line[index];
       index += 1;
@@ -140,7 +139,76 @@ int main(int argc,char *argv[]) {
       else if (c == 124) {
         struct NFA* nfa2 = pop(stack);
         struct NFA* nfa1 = pop(stack);
+        struct NFA* added = (struct NFA*)calloc(1,sizeof(added));
+        struct Transitions* nfaTranCursor1 = nfa1->tran;
+        struct Transitions* nfaTranCursor2 = nfa2->tran;
+        struct Transitions* addedCursor = (struct Transitions*)added;
+
+        while(nfaTranCursor1 != NULL) {
+          struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+          collect->stateOne = nfaTranCursor1->stateOne;
+          collect->stateTwo = nfaTranCursor1->stateTwo;
+          collect->symbol = nfaTranCursor1->symbol;
+          // Iterate the pointers
+          addedCursor->tran = collect;
+          addedCursor = addedCursor->tran;
+          nfaTranCursor1 = nfaTranCursor1->tran;
+        }
+
         // Do shit
+        // Add a new start state s and make a ε-transition from this state to the start states of FA1 and FA2.
+        struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
+        collect->stateOne = stateCounter;
+        collect->stateTwo = nfa1->startState;
+        collect->symbol = 'E';
+        added->startState = stateCounter;
+
+        addedCursor->tran = collect;
+        addedCursor = addedCursor->tran;
+
+        struct Transitions* collect2 = (struct Transitions*)calloc(1,sizeof(collect));
+        collect2->stateOne = stateCounter;
+        collect2->stateTwo = nfa2->startState;
+        collect2->symbol = 'E';
+
+        addedCursor->tran = collect2;
+        addedCursor = addedCursor->tran;
+
+        stateCounter += 1;
+
+
+        // Add a new final state f and make a ε-transition to this state from each of the final states of FA1 and FA2.
+        struct Transitions* collect3 = (struct Transitions*)calloc(1,sizeof(collect));
+        collect3->stateTwo = stateCounter;
+        collect3->stateOne = nfa1->acceptState;
+        collect3->symbol = 'E';
+        added->acceptState = stateCounter;
+
+        addedCursor->tran = collect3;
+        addedCursor = addedCursor->tran;
+
+        struct Transitions* collect4 = (struct Transitions*)calloc(1,sizeof(collect));
+        collect4->stateTwo = stateCounter;
+        collect4->stateOne = nfa2->acceptState;
+        collect4->symbol = 'E';
+
+        addedCursor->tran = collect4;
+        addedCursor = addedCursor->tran;
+        stateCounter += 1;
+
+        while(nfaTranCursor2 != NULL) {
+          struct Transitions* collect5 = (struct Transitions*)calloc(1,sizeof(collect));
+          collect5->stateOne = nfaTranCursor2->stateOne;
+          collect5->stateTwo = nfaTranCursor2->stateTwo;
+          collect5->symbol = nfaTranCursor2->symbol;
+          // Iterate the pointers
+          addedCursor->tran = collect5;
+          addedCursor = addedCursor->tran;
+          nfaTranCursor2 = nfaTranCursor2->tran;
+        }
+
+        push(stack,(struct NFA*)added);
+
       }
       // if the char == '*'
       else if (c == 42) {
@@ -201,7 +269,6 @@ int main(int argc,char *argv[]) {
         stateCounter += 1;
         //stateCounter += 1;
         nfa->tran->symbol = c;
-        nfa->size += 2;
         push(stack,nfa);
       }
     }
