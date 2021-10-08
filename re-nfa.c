@@ -56,7 +56,7 @@ int compareTrans(const void *compare1,const void *compare2) {
 }
 
 
-int printSortedNFATrans(struct NFA* nfa, struct Transitions** arrayOfTrans, int sizeOfTrans) {
+int printSortedNFATrans(struct NFA* nfa, struct Transitions** arrayOfTrans, int sizeOfTrans, char* line) {
     struct Transitions* cursor = (struct Transitions*)nfa->tran;
     int i = 0;
     while(cursor != NULL) {
@@ -65,15 +65,17 @@ int printSortedNFATrans(struct NFA* nfa, struct Transitions** arrayOfTrans, int 
       i += 1;
     }
     qsort(arrayOfTrans,sizeOfTrans,sizeof(struct Transitions*), compareTrans);
+    printf("RE: %s", line);
+    printf("Start: q%d\n", nfa->startState);
+    printf("Accept: q%d\n", nfa->acceptState);
     for(int i = 0; i < sizeOfTrans; i++) {
-      printf("State one %d\n",arrayOfTrans[i]->stateOne);
-      printf("State two %d\n",arrayOfTrans[i]->stateTwo);
-      printf(" %c\n",arrayOfTrans[i]->symbol);
+        printf("(q%d, %c) -> q%d\n",arrayOfTrans[i]->stateOne, arrayOfTrans[i]->symbol, arrayOfTrans[i]->stateTwo);
     }
+    printf("\n");
     return 0;
 }
 
-
+// NEED TO FIX CASE 3 and do some error checking for invalid input
 
 int main(int argc,char *argv[]) {
   char line[256];
@@ -94,7 +96,7 @@ int main(int argc,char *argv[]) {
 
   FILE* fp = fopen(argv[1],"r");
   if (!fp) {
-    fprintf(stderr,"%s\n","Failed to allocate memory");
+    fprintf(stderr,"%s\n","Could not open file");
     free(stack);
     free(nfaArray);
     return 0;
@@ -105,14 +107,9 @@ int main(int argc,char *argv[]) {
 
   while (fgets(line,sizeof(line),fp)) {
     index = 0;
+    //memset(line, '\0', sizeof(line));
+    //continue;
     stateCounter = 1;
-    if(firstIterationFlag >= 2) {
-      // Print nfa transitions
-      struct Transitions** arrayOfTrans = (struct Transitions**)calloc(sizeOfNFA,sizeof(arrayOfTrans));
-      struct NFA* finalNFA = pop(stack);
-      printSortedNFATrans(finalNFA,arrayOfTrans,sizeOfNFA);
-      sizeOfNFA = 0;
-    }
     firstIterationFlag += 1;
   while (line[index] != '\0') {
       char c = line[index];
@@ -277,6 +274,12 @@ int main(int argc,char *argv[]) {
         // Push
         // If c is a new line, continue
         if (c == 10) {
+          // If the char is a new line then print the nfa transitions
+          struct Transitions** arrayOfTrans = (struct Transitions**)calloc(sizeOfNFA,sizeof(arrayOfTrans));
+          struct NFA* finalNFA = pop(stack);
+          printSortedNFATrans(finalNFA,arrayOfTrans,sizeOfNFA,line);
+          sizeOfNFA = 0;
+          memset(line, '\0', sizeof(line));
           continue;
         }
         sizeOfNFA += 1;
@@ -295,16 +298,10 @@ int main(int argc,char *argv[]) {
         push(stack,nfa);
       }
     }
-    fclose(fp);
-    if(errno) {
-      fprintf(stderr,"%s\n", strerror(errno));
-    }
-    if(firstIterationFlag == 1) {
-      // Print nfa transitions
-      struct Transitions** arrayOfTrans = (struct Transitions**)calloc(sizeOfNFA,sizeof(arrayOfTrans));
-      struct NFA* finalNFA = pop(stack);
-      printSortedNFATrans(finalNFA,arrayOfTrans,sizeOfNFA);
-    }
+  }
+  fclose(fp);
+  if(errno) {
+    fprintf(stderr,"%s\n", strerror(errno));
   }
   return 0;
 }

@@ -1,1 +1,7 @@
-ab|*a&b&a*&*ab|&ab|&
+a*b|
+ab|*b&
+ab|a&b&a&*ab|&ab|&
+ab|
+ab&
+a*
+a
