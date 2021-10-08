@@ -3,37 +3,30 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-
-
 struct Stack {
   int top;
   // Array of nfa's
   struct NFA ** arrayOfNFAs;
 };
-
 struct NFA {
   int startState;
   int acceptState;
+  int size;
   struct Transitions * tran;
 };
-
 struct Transitions {
   int stateOne;
   int stateTwo;
   char symbol;
   struct Transitions * tran;
 };
-
 int push(struct Stack* stack, struct NFA* nfa) {
     stack->arrayOfNFAs[++stack->top] = nfa;
     return 0;
 }
-
-
 struct NFA* pop(struct Stack* stack) {
   return stack->arrayOfNFAs[stack->top--];
 }
-
 int cleanUpNFA(struct NFA* nfa) {
     struct Transitions* temp = NULL;
     struct Transitions* cursor = (struct Transitions*)nfa;
@@ -46,9 +39,6 @@ int cleanUpNFA(struct NFA* nfa) {
     free(cursor);
     return 0;
 }
-
-
-
 int main(int argc,char *argv[]) {
   char line[256];
   memset(line, '\0', sizeof(line));
@@ -65,14 +55,12 @@ int main(int argc,char *argv[]) {
     free(stack);
     return 0;
   }
-
   if (argc == 1) {
     fprintf(stdout,"%s\n", "No file was passed in");
     free(stack);
     free(nfaArray);
     return 0;
   }
-
   FILE* fp = fopen(argv[1],"r");
   if (!fp) {
     fprintf(stderr,"%s\n","Failed to allocate memory");
@@ -83,7 +71,6 @@ int main(int argc,char *argv[]) {
   // Init the stack
   stack->arrayOfNFAs = nfaArray;
   stack->top = -1;
-
   while (fgets(line,sizeof(line), fp)) {
     index = 0;
     stateCounter = 1;
@@ -98,7 +85,6 @@ int main(int argc,char *argv[]) {
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* nfaTranCursor2 = nfa2->tran;
         struct Transitions* addedCursor = (struct Transitions*)added;
-
         while(nfaTranCursor1 != NULL) {
           struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
           collect->stateOne = nfaTranCursor1->stateOne;
@@ -109,7 +95,6 @@ int main(int argc,char *argv[]) {
           addedCursor = addedCursor->tran;
           nfaTranCursor1 = nfaTranCursor1->tran;
         }
-
         // Add the epsilon state
         struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
         collect->stateOne = nfa1->acceptState;
@@ -117,7 +102,6 @@ int main(int argc,char *argv[]) {
         collect->symbol = 'E';
         added->startState = nfa1->startState;
         added->acceptState = nfa2->acceptState;
-
         addedCursor->tran = collect;
         addedCursor = addedCursor->tran;
         while(nfaTranCursor2 != NULL) {
@@ -207,8 +191,7 @@ int main(int argc,char *argv[]) {
           nfaTranCursor2 = nfaTranCursor2->tran;
         }
 
-        push(stack,(struct NFA*)added);
-
+        push(stack,(struct NFA*)added);// Do shit
       }
       // if the char == '*'
       else if (c == 42) {
@@ -216,8 +199,6 @@ int main(int argc,char *argv[]) {
         struct NFA* added = (struct NFA*)calloc(1,sizeof(added));
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* addedCursor = (struct Transitions*)added;
-
-
         // Add everything from the old nfa to the new nfa (added)
         while(nfaTranCursor1 != NULL) {
           struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
@@ -229,9 +210,7 @@ int main(int argc,char *argv[]) {
           addedCursor = addedCursor->tran;
           nfaTranCursor1 = nfaTranCursor1->tran;
         }
-
         added->startState = nfa1->startState;
-
         // Add a new start state s and make a ε-transition from this state to the start stateof FA1
         struct Transitions* collect = (struct Transitions*)calloc(1,sizeof(collect));
         collect->stateOne = stateCounter;
@@ -239,7 +218,6 @@ int main(int argc,char *argv[]) {
         collect->symbol = 'E';
         addedCursor->tran = collect;
         addedCursor = addedCursor->tran;
-
         // Make a ε-transition from the final state of F1 to the new start state s
         struct Transitions* collect2 = (struct Transitions*)calloc(1,sizeof(collect));
         collect2->stateOne = nfa1->acceptState;
@@ -269,6 +247,7 @@ int main(int argc,char *argv[]) {
         stateCounter += 1;
         //stateCounter += 1;
         nfa->tran->symbol = c;
+        nfa->size += 2;
         push(stack,nfa);
       }
     }
