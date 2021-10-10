@@ -14,7 +14,7 @@ bug: ${EXEC}
 	gdb -q -tui --args ./${EXEC} pp.txt
 
 valgrind: ${EXEC}
-	valgrind -s --leak-check=full --track-origins=yes ./${EXEC} pp.txt
+	valgrind --leak-check=full --track-origins=yes ./${EXEC} pp.txt
 
 run: ${EXEC}
 	./${EXEC} pp.txt

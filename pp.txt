@@ -1,7 +1,10 @@
 a*b|
 ab|*b&
-ab|a&b&a&*ab|&ab|&
+ab|*a&b&a*&*ab|&ab|&
 ab|
 ab&
 a*
 a
+ab|c|
+a*b&
+ab&a*&
