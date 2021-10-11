@@ -33,6 +33,13 @@ int push(struct Stack* stack, struct NFA* nfa) {
 struct NFA* pop(struct Stack* stack) {
   return stack->arrayOfNFAs[stack->top--];
 }
+int isEmpty(struct Stack* stack) {
+  if(stack->top == -1) {
+    // empty
+    return 1;
+  }
+  return 0;
+}
 
 int cleanUpNFA(struct NFA* nfa) {
     struct Transitions* cursor = (struct Transitions*)nfa;
@@ -107,7 +114,7 @@ int main(int argc,char *argv[]) {
   while (line[index] != '\0') {
       char c = line[index];
       // Catch illegal arguments
-      if((c != 38 && c != 42 && c != 69 && c != 124 && c != 10) && (c > 101 || c < 97)) {
+      if((c != 38 && c != 42 && c != 69 && c != 124 && c != 10) && (c > 101 || c < 97) && (isEmpty(stack)) == 0) {
         // Delete the new line
         line[strlen(line)-1] = '\0';
         fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
@@ -276,10 +283,15 @@ int main(int argc,char *argv[]) {
       else {
         // Push the char nfa into the stack
         if (c == 10) {
+          struct NFA* finalNFA = pop(stack);
+          if ((isEmpty(stack)) == 0) {
+            line[strlen(line)-1] = '\0';
+            fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
+            exit(0);
+          }
           illegalStateCounter = 0;
           // If the char is a new line then print the nfa transitions
           struct Transitions** arrayOfTrans = (struct Transitions**)calloc(sizeOfNFA,sizeof(struct Transition*));
-          struct NFA* finalNFA = pop(stack);
           // Insert all transitions into a array of transitions and qsort it
           printSortedNFATrans(finalNFA,arrayOfTrans,sizeOfNFA,line);
           sizeOfNFA = 0;
@@ -287,11 +299,6 @@ int main(int argc,char *argv[]) {
           cleanUpNFA(finalNFA);
           free(arrayOfTrans);
           continue;
-        }
-        if (illegalStateCounter >= 2) {
-          line[strlen(line)-1] = '\0';
-          fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
-          exit(0);
         }
         illegalStateCounter += 1;
         sizeOfNFA += 1;
