@@ -288,11 +288,7 @@ int main(int argc,char *argv[]) {
           free(arrayOfTrans);
           continue;
         }
-        if (illegalStateCounter >= 2) {
-          line[strlen(line)-1] = '\0';
-          fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
-          exit(0);
-        }
+
         illegalStateCounter += 1;
         sizeOfNFA += 1;
         struct NFA* nfa = (struct NFA*)calloc(1,sizeof(struct NFA));
