@@ -2,7 +2,7 @@ CPP = gcc
 FLAGS = -g -Wall -pedantic
 
 EXEC = re-nfa
-OBJS = re-nfa.o
+OBJS = re-nfa.o nfaStructure.o
 
 default:${EXEC}
 
@@ -25,4 +25,5 @@ ${EXEC}:${OBJS}
 .c.o:
 	${CPP} ${FLAGS} -c $<
 
-re-nfa.o: re-nfa.c
+re-nfa.o: re-nfa.c nfaStructure.c nfaStructure.h
+nfaStructure.o: nfaStructure.c nfaStructure.h

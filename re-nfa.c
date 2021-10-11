@@ -3,77 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-
-
-struct Stack {
-  int top;
-  // Array of nfa's
-  struct NFA ** arrayOfNFAs;
-};
-
-struct NFA {
-  int startState;
-  int acceptState;
-  char spaceHolder;
-  struct Transitions * tran;
-};
-
-struct Transitions {
-  int stateOne;
-  int stateTwo;
-  char symbol;
-  struct Transitions * tran;
-};
-
-int push(struct Stack* stack, struct NFA* nfa) {
-    stack->arrayOfNFAs[++stack->top] = nfa;
-    return 0;
-}
-
-struct NFA* pop(struct Stack* stack) {
-  return stack->arrayOfNFAs[stack->top--];
-}
-
-int cleanUpNFA(struct NFA* nfa) {
-    struct Transitions* cursor = (struct Transitions*)nfa;
-    struct Transitions* temp = NULL;
-    while(cursor->tran != NULL) {
-      temp = cursor;
-      cursor = cursor->tran;
-      free(temp->tran);
-    }
-    free(nfa);
-    return 0;
-}
-
-int compareTrans(const void *compare1,const void *compare2) {
-    // Cast to double pointer then defererence twice to compare actual values
-    struct Transitions **node1 = (struct Transitions **)compare1;
-    struct Transitions **node2 = (struct Transitions **)compare2;
-    if(((*node1)->stateOne - (*node2)->stateOne) == 0) {
-      return (*node1)->stateTwo - (*node2)->stateTwo;
-    }
-    return (*node1)->stateOne - (*node2)->stateOne;
-}
-
-int printSortedNFATrans(struct NFA* nfa, struct Transitions** arrayOfTrans, int sizeOfTrans, char* line) {
-    struct Transitions* cursor = (struct Transitions*)nfa->tran;
-    int i = 0;
-    while(cursor != NULL) {
-      arrayOfTrans[i] = cursor;
-      cursor = cursor->tran;
-      i+=1;
-    }
-    qsort(arrayOfTrans,sizeOfTrans,sizeof(struct Transitions*),compareTrans);
-    printf("RE: %s", line);
-    printf("Start: q%d\n", nfa->startState);
-    printf("Accept: q%d\n", nfa->acceptState);
-    for(int i = 0; i < sizeOfTrans; i++) {
-        printf("(q%d, %c) -> q%d\n",arrayOfTrans[i]->stateOne, arrayOfTrans[i]->symbol, arrayOfTrans[i]->stateTwo);
-    }
-    printf("\n");
-    return 0;
-}
+#include "nfaStructure.h"
 
 
 int main(int argc,char *argv[]) {
@@ -82,7 +12,6 @@ int main(int argc,char *argv[]) {
   int stateCounter;
   int index;
   int sizeOfNFA = 0;
-  int illegalStateCounter = 0;
   struct Stack* stack = (struct Stack*)calloc(1,sizeof(struct Stack));
   struct NFA** nfaArray = (struct NFA**)calloc(1,sizeof(struct NFA*));
   if (argc == 1) {
@@ -118,9 +47,15 @@ int main(int argc,char *argv[]) {
       index += 1;
       // If the char == '&' concat case
       if (c == 38) {
-        illegalStateCounter = 0;
         struct NFA* nfa2 = pop(stack); // b
         struct NFA* nfa1 = pop(stack); // a
+        if(stack->top <= -2){
+          line[strlen(line)-1] = '\0';
+          fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
+          free(stack);
+          free(nfaArray);
+          exit(0);
+        }
         struct NFA* added = (struct NFA*)calloc(1,sizeof(struct NFA));
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* nfaTranCursor2 = nfa2->tran;
@@ -165,9 +100,15 @@ int main(int argc,char *argv[]) {
       }
       // If the char == '|' union case
       else if (c == 124) {
-        illegalStateCounter = 0;
         struct NFA* nfa2 = pop(stack);
         struct NFA* nfa1 = pop(stack);
+        if(stack->top <= -2){
+          line[strlen(line)-1] = '\0';
+          fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
+          free(stack);
+          free(nfaArray);
+          exit(0);
+        }
         struct NFA* added = (struct NFA*)calloc(1,sizeof(struct NFA));
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* nfaTranCursor2 = nfa2->tran;
@@ -234,8 +175,14 @@ int main(int argc,char *argv[]) {
       }
       // If the char == '*' kleene star case
       else if (c == 42) {
-        illegalStateCounter = 0;
         struct NFA* nfa1 = pop(stack);
+        if(stack->top <= -2){
+          line[strlen(line)-1] = '\0';
+          fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
+          free(stack);
+          free(nfaArray);
+          exit(0);
+        }
         struct NFA* added = (struct NFA*)calloc(1,sizeof(struct NFA));
         struct Transitions* nfaTranCursor1 = nfa1->tran;
         struct Transitions* addedCursor = (struct Transitions*)added;
@@ -274,12 +221,16 @@ int main(int argc,char *argv[]) {
         push(stack,(struct NFA*)added);
       }
       else {
-        // Push the char nfa into the stack
-        if (c == 10) {
-          illegalStateCounter = 0;
+        // Push a single char nfa onto the stack
+        if(c == 10) {
+          struct NFA* finalNFA = pop(stack);
+          if((isEmpty(stack)) == 0) {
+            line[strlen(line)-1] = '\0';
+            fprintf(stderr,"RE: %s is an illegal regular expression in postfix form\n",line);
+            exit(0);
+          }
           // If the char is a new line then print the nfa transitions
           struct Transitions** arrayOfTrans = (struct Transitions**)calloc(sizeOfNFA,sizeof(struct Transition*));
-          struct NFA* finalNFA = pop(stack);
           // Insert all transitions into a array of transitions and qsort it
           printSortedNFATrans(finalNFA,arrayOfTrans,sizeOfNFA,line);
           sizeOfNFA = 0;
@@ -288,8 +239,6 @@ int main(int argc,char *argv[]) {
           free(arrayOfTrans);
           continue;
         }
-
-        illegalStateCounter += 1;
         sizeOfNFA += 1;
         struct NFA* nfa = (struct NFA*)calloc(1,sizeof(struct NFA));
         struct Transitions* tran = (struct Transitions*)calloc(1,sizeof(struct Transitions));

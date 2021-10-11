@@ -4,7 +4,10 @@ ab|*a&b&a*&*ab|&ab|&
 ab|
 ab&
 a*
+ab&a&
 a
 ab|c|
 a*b&
 ab&a*&
+ab**&
+a&&
